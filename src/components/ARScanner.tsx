@@ -10,9 +10,6 @@ interface ARScannerProps {
   onError: (error: string) => void;
 }
 
-// Preset markers available in AR.js without any .patt file
-const AR_PRESETS = ['hiro', 'kanji'];
-
 export default function ARScanner({
   onWordDetected,
   onWordLost,
@@ -25,16 +22,15 @@ export default function ARScanner({
   useEffect(() => {
     let isMounted = true;
 
-    // ── Step 1: load A-Frame + AR.js via CDN script tags ──────────────────
-    // We avoid npm imports because AR.js conflicts with Next.js SSR/React 19.
+    // ── Step 1: load A-Frame + MindAR via CDN script tags ──────────────────
     const loadScripts = async () => {
       await injectScript(
-        'https://aframe.io/releases/1.2.0/aframe.min.js',
+        'https://aframe.io/releases/1.3.0/aframe.min.js',
         'aframe-script'
       );
       await injectScript(
-        'https://raw.githack.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js',
-        'arjs-script'
+        'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js',
+        'mindar-script'
       );
     };
 
@@ -42,20 +38,19 @@ export default function ARScanner({
     const buildScene = () => {
       if (!isMounted || !containerRef.current) return;
 
-      // Remove any stale scene from previous mount
       containerRef.current.innerHTML = '';
 
       const scene = document.createElement('a-scene') as any;
-      scene.setAttribute('embedded', '');
-      scene.setAttribute('background', 'transparent: true');
-      scene.setAttribute('renderer', 'alpha: true; antialias: true;');
+      // uiScanning: no removes the yellow scanning box so it scans full screen silently
       scene.setAttribute(
-        'arjs',
-        'sourceType: webcam; debugUIEnabled: false;'
+        'mindar-image',
+        'imageTargetSrc: /markers/apel.mind; uiScanning: no;'
       );
+      scene.setAttribute('color-space', 'sRGB');
+      scene.setAttribute('renderer', 'colorManagement: true, physicallyCorrectLights');
       scene.setAttribute('vr-mode-ui', 'enabled: false');
+      scene.setAttribute('device-orientation-permission-ui', 'enabled: false');
 
-      // Critical sizing — a-scene must have explicit dimensions
       Object.assign(scene.style, {
         width: '100vw',
         height: '100vh',
@@ -66,87 +61,32 @@ export default function ARScanner({
       });
 
       // ── Camera ──────────────────────────────────────────────────────────
-      const camera = document.createElement('a-entity');
-      camera.setAttribute('camera', '');
+      const camera = document.createElement('a-camera');
+      camera.setAttribute('position', '0 0 0');
       camera.setAttribute('look-controls', 'enabled: false');
       scene.appendChild(camera);
 
-      // ── Lighting ────────────────────────────────────────────────────────
-      const ambient = document.createElement('a-light');
-      ambient.setAttribute('type', 'ambient');
-      ambient.setAttribute('color', '#ffffff');
-      ambient.setAttribute('intensity', '0.9');
-      scene.appendChild(ambient);
+      // ── Targets ─────────────────────────────────────────────────────────
+      LEVEL_1_WORDS.forEach((word) => {
+        if (word.markerIndex === undefined) return;
+        
+        const target = document.createElement('a-entity');
+        target.setAttribute('mindar-image-target', `targetIndex: ${word.markerIndex}`);
 
-      const dir = document.createElement('a-light');
-      dir.setAttribute('type', 'directional');
-      dir.setAttribute('color', '#ffffff');
-      dir.setAttribute('intensity', '1.2');
-      dir.setAttribute('position', '5 5 5');
-      scene.appendChild(dir);
-
-      // ── Markers ─────────────────────────────────────────────────────────
-      LEVEL_1_WORDS.forEach((word, i) => {
-        const marker = document.createElement('a-marker');
-
-        if (i < AR_PRESETS.length) {
-          // Use built-in hiro/kanji presets — no .patt file needed
-          marker.setAttribute('preset', AR_PRESETS[i]);
-        } else {
-          // Fallback to hiro for any additional words
-          marker.setAttribute('preset', 'hiro');
-        }
-
-        marker.id = `marker-${word.id}`;
-
-        // Spinning colored box (shows while 3D model loads / as fallback)
-        const box = document.createElement('a-box');
-        box.setAttribute('color', word.color);
-        box.setAttribute('width', '0.08');
-        box.setAttribute('height', '0.08');
-        box.setAttribute('depth', '0.08');
-        box.setAttribute('position', '0 0.04 0');
-        box.setAttribute(
-          'animation',
-          'property: rotation; to: 0 360 0; dur: 3000; easing: linear; loop: true'
-        );
-        marker.appendChild(box);
-
-        // Text label above the box
-        const text = document.createElement('a-text');
-        text.setAttribute('value', `${word.hanzi}\n${word.pinyin}`);
-        text.setAttribute('align', 'center');
-        text.setAttribute('color', '#FFFFFF');
-        text.setAttribute('position', '0 0.2 0');
-        text.setAttribute('scale', '0.3 0.3 0.3');
-        marker.appendChild(text);
-
-        // 3D model (if GLB exists)
-        const model = document.createElement('a-entity');
-        model.setAttribute('gltf-model', word.modelPath);
-        model.setAttribute('scale', '0.05 0.05 0.05');
-        model.setAttribute('position', '0 0.05 0');
-        model.setAttribute(
-          'animation',
-          'property: rotation; to: 0 360 0; dur: 4000; easing: linear; loop: true'
-        );
-        marker.appendChild(model);
-
-        marker.addEventListener('markerFound', () => {
+        target.addEventListener('targetFound', () => {
           if (isMounted) onWordDetected(word);
         });
-        marker.addEventListener('markerLost', () => {
+        target.addEventListener('targetLost', () => {
           if (isMounted) onWordLost();
         });
 
-        scene.appendChild(marker);
+        scene.appendChild(target);
       });
 
       containerRef.current!.appendChild(scene);
 
-      // Fix: AR.js injects <video> directly into <body> — force it visible
+      // Fix: Ensure MindAR canvas and video are correctly styled
       const fixARVideo = () => {
-        // Fix canvas
         document.querySelectorAll('canvas.a-canvas, .a-canvas').forEach((el) => {
           Object.assign((el as HTMLElement).style, {
             width: '100vw',
@@ -155,12 +95,11 @@ export default function ARScanner({
             top: '0',
             left: '0',
             zIndex: '0',
-            backgroundColor: 'transparent', // Force transparency on the canvas element
+            backgroundColor: 'transparent',
           });
         });
 
-        // Fix video element AR.js injects into <body>
-        document.querySelectorAll('body > video, #arjs-video').forEach((el) => {
+        document.querySelectorAll('body > video, video').forEach((el) => {
           const video = el as HTMLVideoElement;
           Object.assign(video.style, {
             width: '100vw',
@@ -168,35 +107,45 @@ export default function ARScanner({
             position: 'fixed',
             top: '0',
             left: '0',
-            zIndex: '-1', // Behind the canvas but above the browser background
+            zIndex: '-2', // MindAR needs video far behind
             objectFit: 'cover',
             display: 'block',
           });
           
-          // CRITICAL: Force video to play if browser blocked autoplay
           if (video.paused) {
             video.play().catch(e => console.error("Video play error:", e));
           }
         });
       };
 
-      // Run multiple times — AR.js injects video asynchronously
-      [300, 600, 1000, 1500, 2000].forEach((ms) =>
+      [500, 1000, 2000, 3000].forEach((ms) =>
         setTimeout(() => { if (isMounted) fixARVideo(); }, ms)
       );
 
-      // Also watch DOM for late-injected video
       const observer = new MutationObserver(fixARVideo);
       observer.observe(document.body, { childList: true, subtree: false });
 
-      // Signal ready after 2s (AR.js init time)
-      setTimeout(() => { if (isMounted) onReady(); }, 2000);
+      // MindAR usually takes a bit to initialize
+      scene.addEventListener('arReady', () => {
+        if (isMounted) onReady();
+      });
 
-      // Cleanup function
+      // Fallback ready signal
+      setTimeout(() => { if (isMounted) onReady(); }, 3000);
+
       cleanupRef.current = () => {
         observer.disconnect();
-        // Remove AR.js video from body
-        document.querySelectorAll('body > video, #arjs-video').forEach((v) => v.remove());
+        // Force stop mindar and clean up video
+        const systems = scene.systems;
+        if (systems && systems['mindar-image-system']) {
+          systems['mindar-image-system'].stop();
+        }
+        document.querySelectorAll('body > video, video').forEach((v) => {
+          const vid = v as HTMLVideoElement;
+          vid.pause();
+          vid.srcObject = null;
+          vid.remove();
+        });
         if (containerRef.current) containerRef.current.innerHTML = '';
       };
     };
@@ -236,10 +185,8 @@ export default function ARScanner({
   );
 }
 
-// Keep track of loading promises to prevent double-injection in React Strict Mode
 const scriptPromises = new Map<string, Promise<void>>();
 
-// ── Inject script tag once, return Promise that resolves when loaded ─────────
 function injectScript(src: string, id: string): Promise<void> {
   if (scriptPromises.has(id)) {
     return scriptPromises.get(id)!;
@@ -247,7 +194,7 @@ function injectScript(src: string, id: string): Promise<void> {
 
   const promise = new Promise<void>((resolve, reject) => {
     if (document.getElementById(id)) {
-      resolve(); // already loaded
+      resolve();
       return;
     }
     const s = document.createElement('script');
