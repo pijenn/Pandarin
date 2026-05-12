@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     // A-Frame and AR.js don't require special webpack config
     return config;
   },
+  turbopack: {},
 };
 
 export default nextConfig;

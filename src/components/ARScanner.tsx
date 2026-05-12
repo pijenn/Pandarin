@@ -32,12 +32,10 @@ export default function ARScanner({
           return;
         }
 
-        // Dynamically import AFRAME
-        const aframeModule = await import('aframe');
-        const AFRAME = aframeModule.default;
-
-        // Import AR.js
-        await import('ar.js');
+        // Wait a tiny bit to ensure global AFRAME is ready (loaded via Script tags)
+        if (typeof window !== 'undefined' && !(window as any).AFRAME) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
 
         // Create the a-scene element
         const scene = document.createElement('a-scene');
@@ -133,7 +131,11 @@ export default function ARScanner({
       // Cleanup
       markerRefs.current.clear();
       if (containerRef.current) {
-        containerRef.current.innerHTML = '';
+        try {
+          containerRef.current.innerHTML = '';
+        } catch (e) {
+          // Ignore A-Frame disconnectedCallback errors during Fast Refresh
+        }
       }
     };
   }, [onWordDetected, onWordLost, onReady, onError]);

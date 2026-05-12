@@ -49,11 +49,6 @@ export default function Home() {
     setError(null);
   };
 
-  // Show loading screen while initializing AR
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
   // Show error screen if there's an error
   if (error) {
     return <ErrorScreen message={error} onRetry={handleStartScan} />;
@@ -62,7 +57,7 @@ export default function Home() {
   // Show AR scanner with prompt
   if (isScanning) {
     return (
-      <div className="relative w-full h-screen bg-black">
+      <div className="relative w-full h-screen bg-transparent">
         <ARScanner
           onWordDetected={handleWordDetected}
           onWordLost={handleWordLost}
@@ -70,30 +65,39 @@ export default function Home() {
           onError={handleError}
         />
 
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center">
+            <LoadingScreen />
+          </div>
+        )}
+
         {/* Overlay content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-between p-8 pointer-events-none">
-          {/* Top - Stop button */}
-          <button
-            onClick={handleStopScan}
-            className="pointer-events-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
-          >
-            Stop Scan
-          </button>
+        {!isLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-between p-8 pointer-events-none z-40">
+            {/* Top - Stop button */}
+            <button
+              onClick={handleStopScan}
+              className="pointer-events-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+            >
+              Stop Scan
+            </button>
 
-          {/* Middle - Scan prompt or Word card */}
-          <div className="pointer-events-auto">
-            {detectedWord ? (
-              <WordCard word={detectedWord} />
-            ) : (
-              <ScanPrompt />
-            )}
-          </div>
+            {/* Middle - Scan prompt or Word card */}
+            <div className="pointer-events-auto">
+              {detectedWord ? (
+                <WordCard word={detectedWord} />
+              ) : (
+                <ScanPrompt />
+              )}
+            </div>
 
-          {/* Bottom - Info */}
-          <div className="text-white text-center text-sm opacity-75">
-            <p>Point your camera at a Pandarin card to learn</p>
+            {/* Bottom - Info */}
+            <div className="text-white text-center text-sm opacity-75">
+              <p>Point your camera at a Pandarin card to learn</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
