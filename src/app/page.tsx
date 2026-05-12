@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import LoadingScreen from '@/components/LoadingScreen';
 import ScanPrompt from '@/components/ScanPrompt';
@@ -19,6 +19,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [detectedWord, setDetectedWord] = useState<VocabWord | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Removed manual body style overrides as we will use a robust <style> tag instead
 
   const handleStartScan = () => {
     setIsScanning(true);
@@ -49,11 +51,6 @@ export default function Home() {
     setError(null);
   };
 
-  // Show loading screen while initializing AR
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
   // Show error screen if there's an error
   if (error) {
     return <ErrorScreen message={error} onRetry={handleStartScan} />;
@@ -62,7 +59,14 @@ export default function Home() {
   // Show AR scanner with prompt
   if (isScanning) {
     return (
-      <div className="relative w-full h-screen bg-black">
+      <div className="relative w-full h-screen bg-transparent">
+        {/* Force body and html to be completely transparent so AR.js video is visible behind them */}
+        <style dangerouslySetInnerHTML={{__html: `
+          html, body {
+            background: transparent !important;
+            background-color: transparent !important;
+          }
+        `}} />
         <ARScanner
           onWordDetected={handleWordDetected}
           onWordLost={handleWordLost}
@@ -70,30 +74,39 @@ export default function Home() {
           onError={handleError}
         />
 
+        {/* Overlay Loading Screen */}
+        {isLoading && (
+          <div className="absolute inset-0 z-50">
+            <LoadingScreen />
+          </div>
+        )}
+
         {/* Overlay content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-between p-8 pointer-events-none">
-          {/* Top - Stop button */}
-          <button
-            onClick={handleStopScan}
-            className="pointer-events-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
-          >
-            Stop Scan
-          </button>
+        {!isLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-between p-8 pointer-events-none z-10">
+            {/* Top - Stop button */}
+            <button
+              onClick={handleStopScan}
+              className="pointer-events-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+            >
+              Stop Scan
+            </button>
 
-          {/* Middle - Scan prompt or Word card */}
-          <div className="pointer-events-auto">
-            {detectedWord ? (
-              <WordCard word={detectedWord} />
-            ) : (
-              <ScanPrompt />
-            )}
-          </div>
+            {/* Middle - Scan prompt or Word card */}
+            <div className="pointer-events-auto">
+              {detectedWord ? (
+                <WordCard word={detectedWord} />
+              ) : (
+                <ScanPrompt />
+              )}
+            </div>
 
-          {/* Bottom - Info */}
-          <div className="text-white text-center text-sm opacity-75">
-            <p>Point your camera at a Pandarin card to learn</p>
+            {/* Bottom - Info */}
+            <div className="text-white text-center text-sm opacity-75">
+              <p>Point your camera at a Pandarin card to learn</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }
