@@ -10,6 +10,9 @@ interface ARScannerProps {
   onError: (error: string) => void;
 }
 
+// Preset markers available in AR.js without any .patt file
+const AR_PRESETS = ['hiro', 'kanji'];
+
 export default function ARScanner({
   onWordDetected,
   onWordLost,
@@ -17,135 +20,245 @@ export default function ARScanner({
   onError,
 }: ARScannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const markerRefs = useRef<Map<string, any>>(new Map());
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const initAFrame = async () => {
-      try {
-        // Check for camera access first
-        try {
-          await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' } 
-          });
-        } catch (err) {
-          onError('Camera access denied. Please allow camera permissions.');
-          return;
+    let isMounted = true;
+
+    // ── Step 1: load A-Frame + AR.js via CDN script tags ──────────────────
+    // We avoid npm imports because AR.js conflicts with Next.js SSR/React 19.
+    const loadScripts = async () => {
+      await injectScript(
+        'https://aframe.io/releases/1.2.0/aframe.min.js',
+        'aframe-script'
+      );
+      await injectScript(
+        'https://raw.githack.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js',
+        'arjs-script'
+      );
+    };
+
+    // ── Step 2: build the a-scene after scripts are loaded ─────────────────
+    const buildScene = () => {
+      if (!isMounted || !containerRef.current) return;
+
+      // Remove any stale scene from previous mount
+      containerRef.current.innerHTML = '';
+
+      const scene = document.createElement('a-scene') as any;
+      scene.setAttribute('embedded', '');
+      scene.setAttribute('background', 'transparent: true');
+      scene.setAttribute('renderer', 'alpha: true; antialias: true;');
+      scene.setAttribute(
+        'arjs',
+        'sourceType: webcam; debugUIEnabled: false;'
+      );
+      scene.setAttribute('vr-mode-ui', 'enabled: false');
+
+      // Critical sizing — a-scene must have explicit dimensions
+      Object.assign(scene.style, {
+        width: '100vw',
+        height: '100vh',
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        zIndex: '0',
+      });
+
+      // ── Camera ──────────────────────────────────────────────────────────
+      const camera = document.createElement('a-entity');
+      camera.setAttribute('camera', '');
+      camera.setAttribute('look-controls', 'enabled: false');
+      scene.appendChild(camera);
+
+      // ── Lighting ────────────────────────────────────────────────────────
+      const ambient = document.createElement('a-light');
+      ambient.setAttribute('type', 'ambient');
+      ambient.setAttribute('color', '#ffffff');
+      ambient.setAttribute('intensity', '0.9');
+      scene.appendChild(ambient);
+
+      const dir = document.createElement('a-light');
+      dir.setAttribute('type', 'directional');
+      dir.setAttribute('color', '#ffffff');
+      dir.setAttribute('intensity', '1.2');
+      dir.setAttribute('position', '5 5 5');
+      scene.appendChild(dir);
+
+      // ── Markers ─────────────────────────────────────────────────────────
+      LEVEL_1_WORDS.forEach((word, i) => {
+        const marker = document.createElement('a-marker');
+
+        if (i < AR_PRESETS.length) {
+          // Use built-in hiro/kanji presets — no .patt file needed
+          marker.setAttribute('preset', AR_PRESETS[i]);
+        } else {
+          // Fallback to hiro for any additional words
+          marker.setAttribute('preset', 'hiro');
         }
 
-        // Dynamically import AFRAME
-        const aframeModule = await import('aframe');
-        const AFRAME = aframeModule.default;
+        marker.id = `marker-${word.id}`;
 
-        // Import AR.js
-        await import('ar.js');
+        // Spinning colored box (shows while 3D model loads / as fallback)
+        const box = document.createElement('a-box');
+        box.setAttribute('color', word.color);
+        box.setAttribute('width', '0.08');
+        box.setAttribute('height', '0.08');
+        box.setAttribute('depth', '0.08');
+        box.setAttribute('position', '0 0.04 0');
+        box.setAttribute(
+          'animation',
+          'property: rotation; to: 0 360 0; dur: 3000; easing: linear; loop: true'
+        );
+        marker.appendChild(box);
 
-        // Create the a-scene element
-        const scene = document.createElement('a-scene');
-        scene.setAttribute('embedded', '');
-        scene.setAttribute('arjs', 'sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_stereo;');
-        scene.setAttribute('vr-mode-ui', 'enabled: false');
+        // Text label above the box
+        const text = document.createElement('a-text');
+        text.setAttribute('value', `${word.hanzi}\n${word.pinyin}`);
+        text.setAttribute('align', 'center');
+        text.setAttribute('color', '#FFFFFF');
+        text.setAttribute('position', '0 0.2 0');
+        text.setAttribute('scale', '0.3 0.3 0.3');
+        marker.appendChild(text);
 
-        // Add camera
-        const camera = document.createElement('a-camera');
-        camera.setAttribute('position', '0 0 0');
-        scene.appendChild(camera);
+        // 3D model (if GLB exists)
+        const model = document.createElement('a-entity');
+        model.setAttribute('gltf-model', word.modelPath);
+        model.setAttribute('scale', '0.05 0.05 0.05');
+        model.setAttribute('position', '0 0.05 0');
+        model.setAttribute(
+          'animation',
+          'property: rotation; to: 0 360 0; dur: 4000; easing: linear; loop: true'
+        );
+        marker.appendChild(model);
 
-        // Add lighting
-        const ambientLight = document.createElement('a-light');
-        ambientLight.setAttribute('type', 'ambient');
-        ambientLight.setAttribute('color', '#ffffff');
-        ambientLight.setAttribute('intensity', '0.9');
-        scene.appendChild(ambientLight);
-
-        const directionalLight = document.createElement('a-light');
-        directionalLight.setAttribute('type', 'directional');
-        directionalLight.setAttribute('color', '#ffffff');
-        directionalLight.setAttribute('intensity', '1.2');
-        directionalLight.setAttribute('position', '5 5 5');
-        scene.appendChild(directionalLight);
-
-        // Add markers for each vocabulary word
-        LEVEL_1_WORDS.forEach((word, index) => {
-          const marker = document.createElement('a-marker');
-          // Use different marker patterns
-          marker.setAttribute('preset', index === 0 ? 'hiro' : 'kanji');
-          marker.id = `marker-${word.id}`;
-
-          // Create model entity
-          const entity = document.createElement('a-entity');
-          entity.setAttribute('gltf-model', word.modelPath);
-          entity.setAttribute('scale', '0.5 0.5 0.5');
-          entity.setAttribute('position', '0 0 0');
-          entity.setAttribute('animation', 
-            'property: rotation; to: 0 360 0; dur: 4000; easing: linear; loop: true'
-          );
-
-          // Fallback: Create colored box
-          const box = document.createElement('a-box');
-          box.setAttribute('color', word.color);
-          box.setAttribute('width', '0.1');
-          box.setAttribute('height', '0.1');
-          box.setAttribute('depth', '0.1');
-          box.setAttribute('animation', 
-            'property: rotation; to: 0 360 0; dur: 4000; easing: linear; loop: true'
-          );
-
-          marker.appendChild(entity);
-          marker.appendChild(box);
-
-          // Track marker events
-          let lastDetected = false;
-
-          marker.addEventListener('markerFound', () => {
-            lastDetected = true;
-            onWordDetected(word);
-          });
-
-          marker.addEventListener('markerLost', () => {
-            lastDetected = false;
-            onWordLost();
-          });
-
-          scene.appendChild(marker);
-          markerRefs.current.set(word.id, marker);
+        marker.addEventListener('markerFound', () => {
+          if (isMounted) onWordDetected(word);
+        });
+        marker.addEventListener('markerLost', () => {
+          if (isMounted) onWordLost();
         });
 
-        // Add scene to container
-        if (containerRef.current) {
-          containerRef.current.innerHTML = '';
-          containerRef.current.appendChild(scene);
+        scene.appendChild(marker);
+      });
 
-          // Wait for scene to be ready
-          setTimeout(() => {
-            onReady();
-          }, 1000);
-        }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'AR initialization failed';
-        console.error('AR Error:', err);
-        onError(errorMsg);
+      containerRef.current!.appendChild(scene);
+
+      // Fix: AR.js injects <video> directly into <body> — force it visible
+      const fixARVideo = () => {
+        // Fix canvas
+        document.querySelectorAll('canvas.a-canvas, .a-canvas').forEach((el) => {
+          Object.assign((el as HTMLElement).style, {
+            width: '100vw',
+            height: '100vh',
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            zIndex: '0',
+            backgroundColor: 'transparent', // Force transparency on the canvas element
+          });
+        });
+
+        // Fix video element AR.js injects into <body>
+        document.querySelectorAll('body > video, #arjs-video').forEach((el) => {
+          const video = el as HTMLVideoElement;
+          Object.assign(video.style, {
+            width: '100vw',
+            height: '100vh',
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            zIndex: '-1', // Behind the canvas but above the browser background
+            objectFit: 'cover',
+            display: 'block',
+          });
+          
+          // CRITICAL: Force video to play if browser blocked autoplay
+          if (video.paused) {
+            video.play().catch(e => console.error("Video play error:", e));
+          }
+        });
+      };
+
+      // Run multiple times — AR.js injects video asynchronously
+      [300, 600, 1000, 1500, 2000].forEach((ms) =>
+        setTimeout(() => { if (isMounted) fixARVideo(); }, ms)
+      );
+
+      // Also watch DOM for late-injected video
+      const observer = new MutationObserver(fixARVideo);
+      observer.observe(document.body, { childList: true, subtree: false });
+
+      // Signal ready after 2s (AR.js init time)
+      setTimeout(() => { if (isMounted) onReady(); }, 2000);
+
+      // Cleanup function
+      cleanupRef.current = () => {
+        observer.disconnect();
+        // Remove AR.js video from body
+        document.querySelectorAll('body > video, #arjs-video').forEach((v) => v.remove());
+        if (containerRef.current) containerRef.current.innerHTML = '';
+      };
+    };
+
+    const run = async () => {
+      try {
+        await loadScripts();
+        if (isMounted) buildScene();
+      } catch (err: any) {
+        if (isMounted) onError(err?.message ?? 'Failed to load AR libraries');
       }
     };
 
-    initAFrame();
+    run();
 
     return () => {
-      // Cleanup
-      markerRefs.current.clear();
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
+      isMounted = false;
+      cleanupRef.current?.();
+      cleanupRef.current = null;
     };
   }, [onWordDetected, onWordLost, onReady, onError]);
 
   return (
     <div
       ref={containerRef}
-      style={{ 
-        width: '100%',
-        height: '100%',
-        position: 'relative'
+      style={{
+        width: '100vw',
+        height: '100vh',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        zIndex: 0,
+        overflow: 'hidden',
+        backgroundColor: 'transparent',
       }}
     />
   );
+}
+
+// Keep track of loading promises to prevent double-injection in React Strict Mode
+const scriptPromises = new Map<string, Promise<void>>();
+
+// ── Inject script tag once, return Promise that resolves when loaded ─────────
+function injectScript(src: string, id: string): Promise<void> {
+  if (scriptPromises.has(id)) {
+    return scriptPromises.get(id)!;
+  }
+
+  const promise = new Promise<void>((resolve, reject) => {
+    if (document.getElementById(id)) {
+      resolve(); // already loaded
+      return;
+    }
+    const s = document.createElement('script');
+    s.id = id;
+    s.src = src;
+    s.crossOrigin = 'anonymous';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(s);
+  });
+
+  scriptPromises.set(id, promise);
+  return promise;
 }
