@@ -29,7 +29,7 @@ export default function ARScanner({
     // We avoid npm imports because AR.js conflicts with Next.js SSR/React 19.
     const loadScripts = async () => {
       await injectScript(
-        'https://aframe.io/releases/1.3.0/aframe.min.js',
+        'https://aframe.io/releases/1.2.0/aframe.min.js',
         'aframe-script'
       );
       await injectScript(
@@ -51,7 +51,7 @@ export default function ARScanner({
       scene.setAttribute('renderer', 'alpha: true; antialias: true;');
       scene.setAttribute(
         'arjs',
-        'sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;'
+        'sourceType: webcam; debugUIEnabled: false;'
       );
       scene.setAttribute('vr-mode-ui', 'enabled: false');
 
@@ -66,9 +66,9 @@ export default function ARScanner({
       });
 
       // ── Camera ──────────────────────────────────────────────────────────
-      const camera = document.createElement('a-camera');
-      camera.setAttribute('gps-camera', '');
-      camera.setAttribute('rotation-reader', '');
+      const camera = document.createElement('a-entity');
+      camera.setAttribute('camera', '');
+      camera.setAttribute('look-controls', 'enabled: false');
       scene.appendChild(camera);
 
       // ── Lighting ────────────────────────────────────────────────────────
