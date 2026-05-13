@@ -1,6 +1,5 @@
 <div align="center">
   <img src="/public/LogoPandarin.svg" alt="Pandarin Logo" width="150" height="150"/>
-  <h1>Pandarin</h1>
 </div>
 
 ## 📖 Tentang Pandarin
