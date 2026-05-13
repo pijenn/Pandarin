@@ -1,36 +1,21 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <img src="/public/LogoPandarin.svg" alt="Pandarin Logo" width="150" height="150"/>
+  <h1>Pandarin</h1>
+</div>
 
-## Getting Started
+## 📖 Tentang Pandarin
+Pandarin merupakan Website Pembelajaran Bahasa Mandarin untuk Pemula yang dirancang secara interaktif dan menyenangkan. Dengan memanfaatkan teknologi *Augmented Reality* (AR), Pandarin membawa pengalaman belajar kosa kata baru ke tingkat yang lebih nyata. Cukup pindai kartu atau objek pembelajaran, dan animasi model 3D akan muncul langsung di layar Anda, membantu visualisasi dan memperkuat daya ingat. Kami percaya bahwa belajar bahasa asing, khususnya Mandarin, tidak harus membosankan dan kaku. Pandarin hadir sebagai inovasi media pembelajaran interaktif yang modern.
 
-First, run the development server:
+## 🛠️ Tech Stack & Library
+Pandarin dibangun menggunakan teknologi web modern untuk memastikan performa yang cepat dan antarmuka yang responsif:
+- **[Next.js](https://nextjs.org/)**: Framework React untuk server-side rendering, routing yang dioptimalkan, dan membangun aplikasi full-stack.
+- **[React](https://react.dev/)**: Library JavaScript terkemuka untuk membangun antarmuka pengguna yang dinamis.
+- **[Three.js](https://threejs.org/)**: Library JavaScript lintas peramban untuk membuat dan menampilkan objek/grafik 3D dalam peramban web.
+- **[MindAR](https://hiukim.github.io/mind-ar-js-doc/)**: Library web *augmented reality* untuk pelacakan gambar (*image tracking*) yang ringan dan cepat.
+- **`<model-viewer>`**: Komponen web dari Google untuk menampilkan model 3D dan AR interaktif dengan mudah di browser.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Fitur-fitur Utama
+1. **Pemindai AR (AR Scanner)**: Fitur unggulan di mana pengguna dapat memindai *flashcard* fisik atau *marker* khusus menggunakan kamera perangkat mereka, kemudian model 3D interaktif yang merepresentasikan kosa kata bahasa Mandarin akan muncul secara *Augmented Reality*.
+2. **Kartu Kosa Kata Interaktif (Word Cards)**: Menampilkan kosa kata dalam Hanzi (karakter Mandarin), lengkap dengan Pinyin (cara baca), dan terjemahannya, membantu pengguna memahami struktur kata.
+3. **Visualisasi Model 3D**: Integrasi dengan berbagai aset model 3D yang di-embed langsung, memberikan pengalaman belajar visual yang tidak terlupakan.
+4. **Antarmuka yang Ramah Pengguna (User Friendly)**: Desain antarmuka (UI) yang bersih, responsif, dan mudah dinavigasi, sehingga sangat cocok untuk semua kalangan pemula.
