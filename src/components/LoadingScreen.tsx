@@ -31,7 +31,7 @@ export default function LoadingScreen() {
           Pandarin
         </h1>
         <p className="text-white/50 text-sm mt-2 font-semibold tracking-widest uppercase">
-          Learn Mandarin with AR
+          Belajar Mandarin dengan AR!
         </p>
       </div>
 

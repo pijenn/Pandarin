@@ -1,14 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import LoadingScreen from '@/components/LoadingScreen';
 import ScanPrompt from '@/components/ScanPrompt';
 import WordCard from '@/components/WordCard';
 import ErrorScreen from '@/components/ErrorScreen';
 import { VocabWord } from '@/lib/vocabulary';
-
-// Lazy load ARScanner only on browser, not on server
 const ARScanner = dynamic(() => import('@/components/ARScanner'), {
   ssr: false,
   loading: () => <LoadingScreen />,
@@ -28,22 +26,22 @@ export default function Home() {
     setError(null);
   };
 
-  const handleScannerReady = () => {
+  const handleScannerReady = useCallback(() => {
     setIsLoading(false);
-  };
+  }, []);
 
-  const handleWordDetected = (word: VocabWord) => {
+  const handleWordDetected = useCallback((word: VocabWord) => {
     setDetectedWord(word);
-  };
+  }, []);
 
-  const handleWordLost = () => {
+  const handleWordLost = useCallback(() => {
     setDetectedWord(null);
-  };
+  }, []);
 
-  const handleError = (errorMsg: string) => {
+  const handleError = useCallback((errorMsg: string) => {
     setError(errorMsg);
     setIsScanning(false);
-  };
+  }, []);
 
   const handleStopScan = () => {
     setIsScanning(false);
@@ -51,16 +49,14 @@ export default function Home() {
     setError(null);
   };
 
-  // Show error screen if there's an error
   if (error) {
     return <ErrorScreen message={error} onRetry={handleStartScan} />;
   }
 
-  // Show AR scanner with prompt
   if (isScanning) {
     return (
       <div className="relative w-full h-screen bg-transparent">
-        {/* Force body and html to be completely transparent so AR.js video is visible behind them */}
+
         <style dangerouslySetInnerHTML={{__html: `
           html, body {
             background: transparent !important;
@@ -114,24 +110,20 @@ export default function Home() {
   // Show home screen with start button
   return (
     <div
-      className="w-full h-screen flex flex-col items-center justify-center"
-      style={{ background: 'linear-gradient(135deg, #1A1A2E 0%, #16213E 50%, #0F3460 100%)' }}
+      className="w-full h-screen flex flex-col items-center justify-center bg-cover bg-center"
+      style={{ backgroundImage: 'url(/Background.png)' }}
     >
       <div className="text-center">
         {/* Logo */}
         <div className="mb-12">
-          <div className="text-8xl mb-6">🐼</div>
-          <h1 className="text-6xl font-black text-yellow-300 tracking-tight mb-2">
-            Pandarin
-          </h1>
-          <p className="text-white/70 text-lg font-semibold tracking-widest uppercase">
-            Learn Mandarin with AR
+          <div className="text-8xl mb-6"><img src="/LogoPandarin.svg" alt="Pandarin Logo" className="mx-auto h-64 w-auto" /></div>
+          <p className="text-[#F8F800] text-lg font-semibold tracking-widest uppercase">
+            Belajar Mandarin dengan AR!
           </p>
         </div>
 
-        {/* Description */}
-        <p className="text-white/60 text-lg mb-12 max-w-md">
-          Point your camera at a Pandarin card to see 3D models and learn new vocabulary!
+        <p className="text-white text-lg mb-12 max-w-md">
+          Tunjukkan Kartu Pandarin ke Kamera untuk melihat 3D Models dan Belajar Katanya!
         </p>
 
         {/* Start button */}
@@ -139,7 +131,7 @@ export default function Home() {
           onClick={handleStartScan}
           className="px-12 py-4 bg-yellow-300 hover:bg-yellow-400 text-gray-900 font-bold text-lg rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
         >
-          Start Scanning 📱
+          Mulai Belajar!
         </button>
       </div>
     </div>

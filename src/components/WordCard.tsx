@@ -80,6 +80,25 @@ export default function WordCard({ word }: WordCardProps) {
           style={{ background: word.color }}
         />
 
+        {/* Sketchfab Embed */}
+        {word.id === 'apple' && (
+          <div className="sketchfab-embed-wrapper w-full mb-4 rounded-xl overflow-hidden bg-black/20" style={{ height: '220px' }}>
+            <iframe 
+              title="Apple &amp; Gummy Worm" 
+              frameBorder="0" 
+              allowFullScreen 
+              allow="autoplay; fullscreen; xr-spatial-tracking" 
+              // @ts-ignore
+              xr-spatial-tracking="true" 
+              execution-while-out-of-viewport="true" 
+              execution-while-not-rendered="true" 
+              web-share="true" 
+              src="https://sketchfab.com/models/1dfea701d5aa4ea0975ca921e0620fee/embed?autostart=1&ui_theme=dark"
+              className="w-full h-full"
+            />
+          </div>
+        )}
+
         {/* Hanzi */}
         <div className="text-center mb-2">
           <p
