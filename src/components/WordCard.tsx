@@ -12,6 +12,8 @@ export default function WordCard({ word }: WordCardProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<{ id: number; x: number }[]>([]);
+  const [isListeningSTT, setIsListeningSTT] = useState(false);
+  const [feedbackSTT, setFeedbackSTT] = useState<{ message: string; isCorrect: boolean } | null>(null);
 
   // Auto-play pronunciation when card appears
   useEffect(() => {
@@ -42,6 +44,49 @@ export default function WordCard({ word }: WordCardProps) {
     setFloatingEmojis(newEmojis);
     setTimeout(() => setFloatingEmojis([]), 1600);
   }
+
+  const handleSTT = () => {
+    // @ts-ignore
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setFeedbackSTT({ message: "Browser ini tidak mendukung fitur Speech-to-Text. Harap gunakan Google Chrome.", isCorrect: false });
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListeningSTT(true);
+      setFeedbackSTT(null);
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      // Bersihkan tanda baca dari hasil transcript
+      const cleanedTranscript = transcript.replace(/[.,。，！？!?\s]/g, '');
+      
+      if (cleanedTranscript === word.hanzi) {
+        setFeedbackSTT({ message: "Keren! Kamu sudah benar mengejanya!", isCorrect: true });
+        spawnEmojis();
+      } else {
+        setFeedbackSTT({ message: `Kamu bilang: "${cleanedTranscript}". Coba ulang lagi, pasti kamu bisa!`, isCorrect: false });
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      setFeedbackSTT({ message: `Gagal mendengarkan: ${event.error}`, isCorrect: false });
+      setIsListeningSTT(false);
+    };
+
+    recognition.onend = () => {
+      setIsListeningSTT(false);
+    };
+
+    recognition.start();
+  };
 
   return (
     <div className="slide-up relative">
@@ -114,35 +159,68 @@ export default function WordCard({ word }: WordCardProps) {
           {word.pinyin}
         </p>
 
-        {/* Speak button */}
-        <button
-          onClick={handleSpeak}
-          disabled={isSpeaking}
-          className="w-full py-3 px-6 rounded-2xl font-bold text-base transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
-          style={{
-            background: isSpeaking
-              ? `${word.color}60`
-              : `linear-gradient(135deg, ${word.color}, ${word.color}cc)`,
-            color: 'white',
-            boxShadow: isSpeaking ? 'none' : `0 4px 20px ${word.color}50`,
-          }}
-        >
-          {isSpeaking ? (
-            <>
-              <span className="flex gap-1">
-                <span className="inline-block w-2 h-2 rounded-full bg-white dot-1" />
-                <span className="inline-block w-2 h-2 rounded-full bg-white dot-2" />
-                <span className="inline-block w-2 h-2 rounded-full bg-white dot-3" />
-              </span>
-              Speaking...
-            </>
-          ) : (
-            <>
-              <span className={hasSpoken ? '' : 'sparkle'}>🔊</span>
-              {hasSpoken ? 'Listen Again' : 'Listen!'}
-            </>
+        {/* Actions Container */}
+        <div className="flex flex-col gap-3">
+          {/* Speak button */}
+          <button
+            onClick={handleSpeak}
+            disabled={isSpeaking || isListeningSTT}
+            className="w-full py-3 px-6 rounded-2xl font-bold text-base transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
+            style={{
+              background: isSpeaking || isListeningSTT
+                ? `${word.color}60`
+                : `linear-gradient(135deg, ${word.color}, ${word.color}cc)`,
+              color: 'white',
+              boxShadow: isSpeaking || isListeningSTT ? 'none' : `0 4px 20px ${word.color}50`,
+            }}
+          >
+            {isSpeaking ? (
+              <>
+                <span className="flex gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-white dot-1" />
+                  <span className="inline-block w-2 h-2 rounded-full bg-white dot-2" />
+                  <span className="inline-block w-2 h-2 rounded-full bg-white dot-3" />
+                </span>
+                Speaking...
+              </>
+            ) : (
+              <>
+                <span className={hasSpoken ? '' : 'sparkle'}>🔊</span>
+                {hasSpoken ? 'Listen Again' : 'Listen!'}
+              </>
+            )}
+          </button>
+
+          {/* STT button */}
+          <button
+            onClick={handleSTT}
+            disabled={isSpeaking || isListeningSTT}
+            className="w-full py-3 px-6 rounded-2xl font-bold text-base transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 bg-gray-800 text-white"
+            style={{
+              boxShadow: isListeningSTT ? `0 0 15px ${word.color}` : 'none',
+              border: `2px solid ${isListeningSTT ? word.color : '#4b5563'}`
+            }}
+          >
+            {isListeningSTT ? (
+              <>
+                <span className="flex gap-1 animate-pulse">🎤</span>
+                Mendengarkan...
+              </>
+            ) : (
+              <>
+                <span>🎤</span>
+                Coba Bicara!
+              </>
+            )}
+          </button>
+
+          {/* STT Feedback */}
+          {feedbackSTT && (
+            <div className={`text-center font-semibold text-sm p-3 rounded-xl ${feedbackSTT.isCorrect ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+              {feedbackSTT.message}
+            </div>
           )}
-        </button>
+        </div>
       </div>
     </div>
   );

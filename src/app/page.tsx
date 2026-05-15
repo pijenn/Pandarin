@@ -35,7 +35,8 @@ export default function Home() {
   }, []);
 
   const handleWordLost = useCallback(() => {
-    setDetectedWord(null);
+    // Kartu tetap terbuka walaupun kamera dipalingkan
+    // setDetectedWord(null);
   }, []);
 
   const handleError = useCallback((errorMsg: string) => {
@@ -80,13 +81,23 @@ export default function Home() {
         {/* Overlay content */}
         {!isLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-between p-8 pointer-events-none z-10">
-            {/* Top - Stop button */}
-            <button
-              onClick={handleStopScan}
-              className="pointer-events-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
-            >
-              Stop Scan
-            </button>
+            {/* Top - Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={handleStopScan}
+                className="pointer-events-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors shadow-lg"
+              >
+                Stop Scan
+              </button>
+              {detectedWord && (
+                <button
+                  onClick={() => setDetectedWord(null)}
+                  className="pointer-events-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors shadow-lg"
+                >
+                  Scan Kartu Lain
+                </button>
+              )}
+            </div>
 
             {/* Middle - Scan prompt or Word card */}
             <div className="pointer-events-auto">
