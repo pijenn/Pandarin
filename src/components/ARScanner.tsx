@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { LEVEL_1_WORDS, VocabWord } from '@/lib/vocabulary';
+import { VocabWord } from '@/lib/vocabulary';
 
 interface ARScannerProps {
   onWordDetected: (word: VocabWord) => void;
   onWordLost: () => void;
   onReady: () => void;
   onError: (error: string) => void;
+  words: VocabWord[];
+  targetMindFile: string;
 }
 
 export default function ARScanner({
@@ -15,6 +17,8 @@ export default function ARScanner({
   onWordLost,
   onReady,
   onError,
+  words,
+  targetMindFile,
 }: ARScannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -44,7 +48,7 @@ export default function ARScanner({
       // uiScanning: no removes the yellow scanning box so it scans full screen silently
       scene.setAttribute(
         'mindar-image',
-        'imageTargetSrc: /markers/apel.mind; uiScanning: no;'
+        `imageTargetSrc: ${targetMindFile}; uiScanning: no;`
       );
       scene.setAttribute('color-space', 'sRGB');
       scene.setAttribute('renderer', 'colorManagement: true, physicallyCorrectLights');
@@ -67,7 +71,7 @@ export default function ARScanner({
       scene.appendChild(camera);
 
       // ── Targets ─────────────────────────────────────────────────────────
-      LEVEL_1_WORDS.forEach((word) => {
+      words.forEach((word) => {
         if (word.markerIndex === undefined) return;
         
         const target = document.createElement('a-entity');
@@ -166,7 +170,7 @@ export default function ARScanner({
       cleanupRef.current?.();
       cleanupRef.current = null;
     };
-  }, [onWordDetected, onWordLost, onReady, onError]);
+  }, [onWordDetected, onWordLost, onReady, onError, words, targetMindFile]);
 
   return (
     <div

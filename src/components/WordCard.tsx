@@ -6,9 +6,10 @@ import { speakMandarin } from '@/lib/tts';
 
 interface WordCardProps {
   word: VocabWord;
+  onLevelComplete?: (level: number) => void;
 }
 
-export default function WordCard({ word }: WordCardProps) {
+export default function WordCard({ word, onLevelComplete }: WordCardProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasSpoken, setHasSpoken] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<{ id: number; x: number }[]>([]);
@@ -71,6 +72,9 @@ export default function WordCard({ word }: WordCardProps) {
       if (cleanedTranscript === word.hanzi) {
         setFeedbackSTT({ message: "Keren! Kamu sudah benar mengejanya!", isCorrect: true });
         spawnEmojis();
+        if (onLevelComplete) {
+          onLevelComplete(word.level);
+        }
       } else {
         setFeedbackSTT({ message: `Kamu bilang: "${cleanedTranscript}". Coba ulang lagi, pasti kamu bisa!`, isCorrect: false });
       }
@@ -113,7 +117,7 @@ export default function WordCard({ word }: WordCardProps) {
           <span className="text-4xl">{word.emoji}</span>
           <div>
             <p className="text-white/60 text-sm font-semibold uppercase tracking-wider">
-              Level 1 · Basic
+              Level {word.level} · {word.level === 1 ? 'Basic' : word.level === 2 ? 'Intermediate' : 'Advanced'}
             </p>
             <p className="text-white font-bold text-lg">{word.english}</p>
           </div>
@@ -126,10 +130,10 @@ export default function WordCard({ word }: WordCardProps) {
         />
 
         {/* Sketchfab Embed */}
-        {word.id === 'apple' && (
+        {word.sketchfabEmbed && (
           <div className="sketchfab-embed-wrapper w-full mb-4 rounded-xl overflow-hidden bg-black/20" style={{ height: '220px' }}>
             <iframe 
-              title="Apple &amp; Gummy Worm" 
+              title={word.english}
               frameBorder="0" 
               allowFullScreen 
               allow="autoplay; fullscreen; xr-spatial-tracking" 
@@ -138,7 +142,7 @@ export default function WordCard({ word }: WordCardProps) {
               execution-while-out-of-viewport="true" 
               execution-while-not-rendered="true" 
               web-share="true" 
-              src="https://sketchfab.com/models/1dfea701d5aa4ea0975ca921e0620fee/embed?autostart=1&ui_theme=dark"
+              src={word.sketchfabEmbed}
               className="w-full h-full"
             />
           </div>
@@ -216,8 +220,13 @@ export default function WordCard({ word }: WordCardProps) {
 
           {/* STT Feedback */}
           {feedbackSTT && (
-            <div className={`text-center font-semibold text-sm p-3 rounded-xl ${feedbackSTT.isCorrect ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
-              {feedbackSTT.message}
+            <div className={`flex flex-col items-center justify-center text-center font-semibold text-sm p-3 rounded-xl mt-2 animate-in fade-in zoom-in duration-300 ${feedbackSTT.isCorrect ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+              <img 
+                src={feedbackSTT.isCorrect ? '/PandaBenar.svg' : '/PandaSalah.svg'} 
+                alt={feedbackSTT.isCorrect ? 'Panda Benar' : 'Panda Salah'} 
+                className={`w-28 h-auto mb-2 ${feedbackSTT.isCorrect ? 'animate-bounce' : ''}`}
+              />
+              <p>{feedbackSTT.message}</p>
             </div>
           )}
         </div>
