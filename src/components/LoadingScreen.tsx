@@ -24,7 +24,6 @@ export default function LoadingScreen() {
       className="fixed inset-0 flex flex-col items-center justify-center z-50 bg-cover bg-center"
       style={{ backgroundImage: 'url(/Background.png)' }}
     >
-      {/* Logo */}
       <div className="mb-8 text-center">
         <div className="mb-6">
           <img src="/LogoPandarin.svg" alt="Pandarin Logo" className="mx-auto h-64 w-auto" />
@@ -33,8 +32,6 @@ export default function LoadingScreen() {
           Belajar Mandarin dengan AR!
         </p>
       </div>
-
-      {/* Progress dots */}
       <div className="flex gap-2 mb-6">
         {LOADING_STEPS.map((_, i) => (
           <div
@@ -48,12 +45,10 @@ export default function LoadingScreen() {
         ))}
       </div>
 
-      {/* Current step */}
       <div className="glass-card px-6 py-3 rounded-lg" style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)' }}>
         <p className="text-white font-semibold text-sm">{LOADING_STEPS[step]}</p>
       </div>
 
-      {/* Permission hint */}
       <p className="text-white/80 text-xs mt-8 text-center max-w-[200px]">
         Please allow camera access when prompted
       </p>

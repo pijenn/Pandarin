@@ -26,7 +26,6 @@ export default function ARScanner({
   useEffect(() => {
     let isMounted = true;
 
-    // ── Step 1: load A-Frame + MindAR via CDN script tags ──────────────────
     const loadScripts = async () => {
       await injectScript(
         'https://aframe.io/releases/1.3.0/aframe.min.js',
@@ -38,14 +37,13 @@ export default function ARScanner({
       );
     };
 
-    // ── Step 2: build the a-scene after scripts are loaded ─────────────────
     const buildScene = () => {
       if (!isMounted || !containerRef.current) return;
 
       containerRef.current.innerHTML = '';
 
       const scene = document.createElement('a-scene') as any;
-      // uiScanning: no removes the yellow scanning box so it scans full screen silently
+ 
       scene.setAttribute(
         'mindar-image',
         `imageTargetSrc: ${targetMindFile}; uiScanning: no;`
@@ -63,14 +61,11 @@ export default function ARScanner({
         left: '0',
         zIndex: '0',
       });
-
-      // ── Camera ──────────────────────────────────────────────────────────
       const camera = document.createElement('a-camera');
       camera.setAttribute('position', '0 0 0');
       camera.setAttribute('look-controls', 'enabled: false');
       scene.appendChild(camera);
 
-      // ── Targets ─────────────────────────────────────────────────────────
       words.forEach((word) => {
         if (word.markerIndex === undefined) return;
         
@@ -129,17 +124,14 @@ export default function ARScanner({
       const observer = new MutationObserver(fixARVideo);
       observer.observe(document.body, { childList: true, subtree: false });
 
-      // MindAR usually takes a bit to initialize
       scene.addEventListener('arReady', () => {
         if (isMounted) onReady();
       });
 
-      // Fallback ready signal
       setTimeout(() => { if (isMounted) onReady(); }, 3000);
 
       cleanupRef.current = () => {
         observer.disconnect();
-        // Force stop mindar and clean up video
         const systems = scene.systems;
         if (systems && systems['mindar-image-system']) {
           systems['mindar-image-system'].stop();

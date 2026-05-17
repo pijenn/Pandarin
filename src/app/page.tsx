@@ -109,7 +109,7 @@ export default function Home() {
                     if (isLevelUnlocked(selectedLevel + 1)) {
                       setSelectedLevel((prev) => prev + 1);
                       setDetectedWord(null);
-                      setIsLoading(true); // Memunculkan loading saat AR re-mount
+                      setIsLoading(true);
                     }
                   }}
                   disabled={!isLevelUnlocked(selectedLevel + 1)}
@@ -119,7 +119,7 @@ export default function Home() {
                       : 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-70'
                   }`}
                 >
-                  Next Level {isLevelUnlocked(selectedLevel + 1) ? '➡️' : '🔒'}
+                  Next Level {isLevelUnlocked(selectedLevel + 1)}
                 </button>
               )}
             </div>
@@ -128,7 +128,19 @@ export default function Home() {
             <div className="pointer-events-auto">
               {detectedWord ? (
                 isLevelUnlocked(detectedWord.level) ? (
-                  <WordCard word={detectedWord} onLevelComplete={unlockNextLevel} />
+                  <WordCard 
+                    word={detectedWord} 
+                    onLevelComplete={unlockNextLevel} 
+                    onNextLevel={() => {
+                      if (selectedLevel < 3 && isLevelUnlocked(selectedLevel + 1)) {
+                        setSelectedLevel((prev) => prev + 1);
+                        setDetectedWord(null);
+                        setIsLoading(true);
+                      } else {
+                        setDetectedWord(null);
+                      }
+                    }} 
+                  />
                 ) : (
                   <div className="glass-card p-8 text-center min-w-[280px]">
                     <div className="text-6xl mb-4">🔒</div>
