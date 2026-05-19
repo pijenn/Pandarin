@@ -6,7 +6,9 @@ import LoadingScreen from '@/components/LoadingScreen';
 import ScanPrompt from '@/components/ScanPrompt';
 import WordCard from '@/components/WordCard';
 import ErrorScreen from '@/components/ErrorScreen';
-import { VocabWord } from '@/lib/vocabulary';
+import { VocabWord, getWordsByLevel } from '@/lib/vocabulary';
+import { useLeveling } from '@/hooks/useLeveling';
+
 const ARScanner = dynamic(() => import('@/components/ARScanner'), {
   ssr: false,
   loading: () => <LoadingScreen />,
@@ -17,6 +19,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [detectedWord, setDetectedWord] = useState<VocabWord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<number>(1);
+  const { unlockedLevels, unlockNextLevel, isLevelUnlocked, isLoaded } = useLeveling();
 
   // Removed manual body style overrides as we will use a robust <style> tag instead
 
@@ -35,7 +39,8 @@ export default function Home() {
   }, []);
 
   const handleWordLost = useCallback(() => {
-    setDetectedWord(null);
+    // Kartu tetap terbuka walaupun kamera dipalingkan
+    // setDetectedWord(null);
   }, []);
 
   const handleError = useCallback((errorMsg: string) => {
@@ -68,6 +73,8 @@ export default function Home() {
           onWordLost={handleWordLost}
           onReady={handleScannerReady}
           onError={handleError}
+          words={getWordsByLevel(selectedLevel)}
+          targetMindFile={`/markers/targetlevel${selectedLevel}.mind`}
         />
 
         {/* Overlay Loading Screen */}
@@ -80,18 +87,75 @@ export default function Home() {
         {/* Overlay content */}
         {!isLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-between p-8 pointer-events-none z-10">
-            {/* Top - Stop button */}
-            <button
-              onClick={handleStopScan}
-              className="pointer-events-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
-            >
-              Stop Scan
-            </button>
+            {/* Top - Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={handleStopScan}
+                className="pointer-events-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors shadow-lg"
+              >
+                Stop Scan
+              </button>
+              {detectedWord && (
+                <button
+                  onClick={() => setDetectedWord(null)}
+                  className="pointer-events-auto px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition-colors shadow-lg"
+                >
+                  Scan Kartu Lain
+                </button>
+              )}
+              {selectedLevel < 3 && (
+                <button
+                  onClick={() => {
+                    if (isLevelUnlocked(selectedLevel + 1)) {
+                      setSelectedLevel((prev) => prev + 1);
+                      setDetectedWord(null);
+                      setIsLoading(true);
+                    }
+                  }}
+                  disabled={!isLevelUnlocked(selectedLevel + 1)}
+                  className={`pointer-events-auto px-6 py-3 font-bold rounded-lg transition-colors shadow-lg ${
+                    isLevelUnlocked(selectedLevel + 1)
+                      ? 'bg-green-500 hover:bg-green-600 text-white'
+                      : 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-70'
+                  }`}
+                >
+                  Next Level {isLevelUnlocked(selectedLevel + 1)}
+                </button>
+              )}
+            </div>
 
-            {/* Middle - Scan prompt or Word card */}
+            {/* Middle - Scan prompt or Word card/Locked Popup */}
             <div className="pointer-events-auto">
               {detectedWord ? (
-                <WordCard word={detectedWord} />
+                isLevelUnlocked(detectedWord.level) ? (
+                  <WordCard 
+                    word={detectedWord} 
+                    onLevelComplete={unlockNextLevel} 
+                    onNextLevel={() => {
+                      if (selectedLevel < 3 && isLevelUnlocked(selectedLevel + 1)) {
+                        setSelectedLevel((prev) => prev + 1);
+                        setDetectedWord(null);
+                        setIsLoading(true);
+                      } else {
+                        setDetectedWord(null);
+                      }
+                    }} 
+                  />
+                ) : (
+                  <div className="glass-card p-8 text-center min-w-[280px]">
+                    <div className="text-6xl mb-4">🔒</div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Level Locked</h2>
+                    <p className="text-white/80 mb-6">
+                      Selesaikan Level {detectedWord.level - 1} terlebih dahulu untuk membuka level ini.
+                    </p>
+                    <button
+                      onClick={() => setDetectedWord(null)}
+                      className="px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold rounded-xl transition-colors w-full"
+                    >
+                      Tutup
+                    </button>
+                  </div>
+                )
               ) : (
                 <ScanPrompt />
               )}
@@ -122,9 +186,36 @@ export default function Home() {
           </p>
         </div>
 
-        <p className="text-white text-lg mb-12 max-w-md">
-          Tunjukkan Kartu Pandarin ke Kamera untuk melihat 3D Models dan Belajar Katanya!
+        <p className="text-white text-lg mb-8 max-w-md">
+          Pilih level dan tunjukkan Kartu Pandarin ke Kamera untuk melihat 3D Models dan Belajar Katanya!
         </p>
+
+        {/* Level Selection */}
+        {isLoaded && (
+          <div className="flex gap-4 mb-8 justify-center">
+            {[1, 2, 3].map((level) => {
+              const isUnlocked = isLevelUnlocked(level);
+              return (
+                <button
+                  key={level}
+                  onClick={() => {
+                    if (isUnlocked) setSelectedLevel(level);
+                  }}
+                  disabled={!isUnlocked}
+                  className={`px-6 py-3 rounded-xl font-bold text-lg transition-all ${
+                    selectedLevel === level
+                      ? 'bg-yellow-400 text-black shadow-[0_0_15px_rgba(250,204,21,0.5)] scale-105'
+                      : !isUnlocked
+                      ? 'bg-gray-800/60 text-gray-500 cursor-not-allowed opacity-60'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  Level {level} {!isUnlocked && '🔒'}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Start button */}
         <button

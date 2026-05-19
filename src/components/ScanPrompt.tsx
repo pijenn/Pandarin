@@ -3,9 +3,7 @@
 export default function ScanPrompt() {
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Scan frame animation */}
       <div className="relative w-48 h-48">
-        {/* Corners */}
         {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map(
           (pos, i) => (
             <div
@@ -24,7 +22,6 @@ export default function ScanPrompt() {
           )
         )}
 
-        {/* Center panda icon with pulse */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative">
             <div
@@ -43,7 +40,6 @@ export default function ScanPrompt() {
         </div>
       </div>
 
-      {/* Text prompt */}
       <div className="glass-card px-6 py-3 text-center">
         <p className="text-white font-bold text-base">
           Point at a Pandarin Card!
@@ -53,7 +49,6 @@ export default function ScanPrompt() {
         </p>
       </div>
 
-      {/* Bouncing arrow pointing down toward camera view */}
       <div className="bounce-y text-2xl">👇</div>
     </div>
   );
