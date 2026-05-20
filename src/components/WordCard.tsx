@@ -17,6 +17,12 @@ export default function WordCard({ word, onLevelComplete, onNextLevel }: WordCar
   const [isListeningSTT, setIsListeningSTT] = useState(false);
   const [feedbackSTT, setFeedbackSTT] = useState<{ message: string; isCorrect: boolean } | null>(null);
 
+  const levelNames: Record<number, string> = {
+    1: 'Basic',
+    2: 'Intermediate',
+    3: 'Advanced',
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       handleSpeak();
@@ -102,7 +108,7 @@ export default function WordCard({ word, onLevelComplete, onNextLevel }: WordCar
           <span className="text-4xl">{word.emoji}</span>
           <div>
             <p className="text-white/60 text-sm font-semibold uppercase tracking-wider">
-              Level 1 · Basic
+              Level {word.level} · {levelNames[word.level] || 'Unknown'}
             </p>
             <p className="text-white font-bold text-lg">{word.english}</p>
           </div>

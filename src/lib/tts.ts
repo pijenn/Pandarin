@@ -1,5 +1,4 @@
-// lib/tts.ts
-// ElevenLabs Text-to-Speech integration for Mandarin pronunciation
+
 
 const ELEVENLABS_API_KEY = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || '';
 
@@ -69,8 +68,6 @@ export async function speakWithElevenLabs({ text, voiceId, modelId }: TTSOptions
   }
 }
 
-// Fallback: Web Speech API (browser built-in)
-// Works for Mandarin if zh-CN voice is available
 export function speakWithWebSpeech(text: string): Promise<void> {
   return new Promise((resolve) => {
     if (!('speechSynthesis' in window)) {
